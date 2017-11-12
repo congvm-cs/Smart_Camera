@@ -1,17 +1,21 @@
-# This script obtaining frames from camera,using mtcnn detecting faces,
-# croping and embedding faces with pre-trained facenet and finally face 
-# recogition with pre-trained classifier
+""" This tool written by VMC helps you detect face from video and extract 
+    face cropped image from every single frame based on facenet model.
+
+    Requirement:
+        Python 3.6
+        Tensorflow
+
+    Systax: 
+        python face_detection_from_video.py --video_dir <input_video_location>
+"""
 
 import tensorflow as tf
 import numpy as np
-import cv2
 import os
-from os.path import join as pjoin
 import detect_face
-import nn4 as network
-import cv2
 import facenet
 import argparse
+import skvideo.io
 
 def to_rgb(img):
   w, h = img.shape
@@ -19,8 +23,10 @@ def to_rgb(img):
   ret[:, :, 0] = ret[:, :, 1] = ret[:, :, 2] = img
   return ret
 
+
 def get_video_location(video_dir):
     return os.path.split(video_dir)[0]    
+
 
 def main():
     # mtcnn parameters
@@ -39,43 +45,35 @@ def main():
     print('Creating networks completely!')
 
     # Get faces from video
-    label = str(input("Enter name: \n> "))
+    label = str(input("Enter image's name prefix: \n> "))
 
     # Loading video
-    import skvideo.io
     frames = skvideo.io.vreader(args.video_dir)
     frame_counter = 0
-    frame_index = 0
+    face_index = 0
     
+    print('-------------------------Processing---------------------------')
     # Processing on every single frame
     for frame in frames:
-        # cv2.imshow('S', frame)
-        # cv2.waitKey(0)
-        # continue
-        if (frame_counter % 10) == 0:
-            # our operation on frame come here
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)   
-            if gray.ndim == 2:
-                img = to_rgb(gray)
-
-            bounding_boxes, _ = detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
+        if (frame_counter % 5) == 0:
+            bounding_boxes, _ = detect_face.detect_face(frame, minsize, pnet, rnet, onet, threshold, factor)
             nrof_faces = bounding_boxes.shape[0]    # number of faces
             print('Number of faces: {}'.format(nrof_faces))
-            for face_position in bounding_boxes:
+
+            for face_position in bounding_boxes:    
                 face_position = face_position.astype(int)
 
                 # Get crop image from bounding box
                 crop = frame[face_position[1]:face_position[3],face_position[0]:face_position[2], :]
 
                 # Create crop image
-                skvideo.io.vwrite(get_video_location(args.video_dir) + '/' + label + '-' + str(frame_index) + '.png', crop)
-                print(get_video_location(args.video_dir) + '/' + label + '-' + str(frame_index) + '.png')
-                frame_index += 1
-
+                skvideo.io.vwrite(get_video_location(args.video_dir) + '/' + label + '-' + str(face_index) + '.png', crop)
+                print(get_video_location(args.video_dir) + '/' + label + '-' + str(face_index) + '.png')
+                face_index += 1
         frame_counter += 1      
-
     # When everything is done, release the capture
-    print('Done.')
+    print('\nFound: {} face(s)'.format(face_index))
+    print('---------------------------Done-------------------------------')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
