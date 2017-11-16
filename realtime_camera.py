@@ -21,10 +21,10 @@ from sklearn.externals import joblib
 
 print('Creating networks and loading parameters')
 with tf.Graph().as_default():
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.6)
-    sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
+    # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.6)?
+    sess = tf.Session()
     with sess.as_default():
-        pnet, rnet, onet = detect_face.create_mtcnn(sess, './Path to det1.npy,..')
+        pnet, rnet, onet = detect_face.create_mtcnn(sess, '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/')
 
         minsize = 20  # minimum size of face
         threshold = [0.6, 0.7, 0.7]  # three steps's threshold
@@ -32,13 +32,14 @@ with tf.Graph().as_default():
         margin = 44
         frame_interval = 3
         batch_size = 1000
-        image_size = 182
+        # image_size = 182
+        image_size = 160
         input_image_size = 160
 
-        HumanNames = ['Human_a','Human_b','Human_c','...','Human_h']    #train human name
+        # HumanNames = ['Human_a','Human_b','Human_c','...','Human_h']    #train human name
 
         print('Loading feature extraction model')
-        modeldir = '/..Path to pre-trained model../20170512-110547/20170512-110547.pb'
+        modeldir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/20170512-110547.pb'
         facenet.load_model(modeldir)
 
         images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
@@ -46,7 +47,7 @@ with tf.Graph().as_default():
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         embedding_size = embeddings.get_shape()[1]
 
-        classifier_filename = '/..Path to classifier model../my_classifier.pkl'
+        classifier_filename = '/media/vmc/Data/VMC/Workspace/Smart-Camera/model.pkl'
         classifier_filename_exp = os.path.expanduser(classifier_filename)
         with open(classifier_filename_exp, 'rb') as infile:
             (model, class_names) = pickle.load(infile)
@@ -120,11 +121,16 @@ with tf.Graph().as_default():
                         text_x = bb[i][0]
                         text_y = bb[i][3] + 20
 
+                        proba = float(np.max(predictions))
+
+                        str_proba = str("%.2f" % proba)
                         # print('result: ', best_class_indices[0])
-                        for H_i in HumanNames:
-                            if HumanNames[best_class_indices[0]] == H_i:
-                                result_names = HumanNames[best_class_indices[0]]
+                        for H_i in class_names:
+                            if class_names[best_class_indices[0]] == H_i:
+                                result_names = class_names[best_class_indices[0]]
                                 cv2.putText(frame, result_names, (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                                            1, (0, 0, 255), thickness=1, lineType=2)
+                                cv2.putText(frame, str_proba, (text_x, text_y + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL,
                                             1, (0, 0, 255), thickness=1, lineType=2)
                 else:
                     print('Unable to align')
@@ -132,10 +138,10 @@ with tf.Graph().as_default():
             sec = curTime - prevTime
             prevTime = curTime
             fps = 1 / (sec)
-            str = 'FPS: %2.3f' % fps
+            strs = 'FPS: %2.3f' % fps
             text_fps_x = len(frame[0]) - 150
             text_fps_y = 20
-            cv2.putText(frame, str, (text_fps_x, text_fps_y),
+            cv2.putText(frame, strs, (text_fps_x, text_fps_y),
                         cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 0), thickness=1, lineType=2)
             # c+=1
             cv2.imshow('Video', frame)

@@ -14,6 +14,8 @@ import pickle
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
 
+reload_data = True
+
 def write_embedding_data(X, y, file_name):
     with open(file_name, 'w+') as file:
         for i in range(X.shape[0]):
@@ -52,35 +54,44 @@ def main():
             nrof_batches_per_epoch = int(math.ceil(1.0*nrof_images / batch_size))          
             emb_array = np.zeros((nrof_images, embedding_size))
             
-            for i in range(nrof_batches_per_epoch):
-                start_index = i*batch_size
-                end_index = min((i+1)*batch_size, nrof_images)
-                paths_batch = paths[start_index:end_index]
-                images = facenet.load_data(paths_batch, False, False, args.image_size)     
-                feed_dict = { images_placeholder:images, phase_train_placeholder:False }
-                emb_array[start_index:end_index,:] = sess.run(embeddings, feed_dict=feed_dict)
-                print("Epoch #{}. Processed: {}/{}".format(i, end_index, nrof_images))
+            if reload_data:
+                for i in range(nrof_batches_per_epoch):
+                    start_index = i*batch_size
+                    end_index = min((i+1)*batch_size, nrof_images)
+                    paths_batch = paths[start_index:end_index]
+                    images = facenet.load_data(paths_batch, False, False, args.image_size)     
+                    feed_dict = { images_placeholder:images, phase_train_placeholder:False }
+                    emb_array[start_index:end_index,:] = sess.run(embeddings, feed_dict=feed_dict)
+                    print("Epoch #{}. Processed: {}/{}".format(i, end_index, nrof_images))
             
+                # save data on disk
+                with open("emb_array.pkl", 'wb') as pickle_file:
+                    pickle.dump(emb_array, pickle_file)
+            else:
+                # load data from disk
+                with open("emb_array.pkl", 'rb') as pickle_file:
+                    emb_array = pickle.load(pickle_file)
+
             # Train classifier
             from sklearn.model_selection import train_test_split
             X_train, X_test, y_train, y_test = train_test_split(emb_array, labels, random_state = 10, test_size=0.3)
             
             print('Training classifier')
-            model = SVC(kernel='rbf', probability=True, C=1.0, gamma='auto')
+            model = SVC(kernel='linear', probability=True, C=0.5, gamma='auto')
             model.fit(emb_array, labels)
 
             # # Create a list of class names
             class_names = [ cls.name.replace('_', ' ') for cls in dataset]
             classifier_filename_exp = os.path.expanduser(args.classifier_filename)
             
-            y_train_pred = model.predict(X_test)
+            y_train_pred = model.predict(X_train)
             y_test_pred = model.predict(X_test)
 
             from sklearn.metrics import accuracy_score
             test_score = accuracy_score(y_test, y_test_pred)
             train_score = accuracy_score(y_train, y_train_pred)
 
-            print("Test accuracy: {}".format(train_score))
+            print("Train accuracy: {}".format(train_score))
             print("Test accuracy: {}".format(test_score))
 
             # Write into file
