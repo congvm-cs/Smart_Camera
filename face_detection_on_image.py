@@ -1,9 +1,3 @@
-
-# coding: utf-8
-
-# This script obtaining frames from camera,using mtcnn detecting faces,croping 
-# and embedding faces with pre-trained facenet and finally face recogition with 
-# pre-trained classifier.
 import tensorflow as tf
 import numpy as np
 import os
@@ -50,10 +44,9 @@ def main():
     image = cv2.imread(args.img_dir)
 
     # Converting to gray
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    if gray.ndim == 2:
-        img = to_rgb(gray)
+    # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # if gray.ndim == 2:
+    #     img = to_rgb(gray)
 
     bounding_boxes, _ = detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
 

@@ -1,20 +1,11 @@
-
-# coding: utf-8
-
-# This script obtaining frames from camera,using mtcnn detecting faces,croping 
-# and embedding faces with pre-trained facenet and finally face recogition with 
-# pre-trained classifier.
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import os
 import cv2
 from os.path import join as pjoin
-import sys
-import copy
 import detect_face
 import random
-import sklearn
 from sklearn.externals import joblib
 import argparse
 import facenet

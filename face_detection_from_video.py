@@ -16,6 +16,7 @@ import detect_face
 import facenet
 import argparse
 import skvideo.io
+import cv2
 
 def to_rgb(img):
   w, h = img.shape
@@ -46,12 +47,12 @@ def main():
 
     # Get faces from video
     label = str(input("Enter image's name prefix: \n> "))
-
+    
     # Loading video
     frames = skvideo.io.vreader(args.video_dir)
     frame_counter = 0
     face_index = 0
-    
+
     print('-------------------------Processing---------------------------')
     # Processing on every single frame
     for frame in frames:
@@ -62,9 +63,11 @@ def main():
 
             for face_position in bounding_boxes:    
                 face_position = face_position.astype(int)
-
                 # Get crop image from bounding box
                 crop = frame[face_position[1]:face_position[3],face_position[0]:face_position[2], :]
+                
+                # Resize images
+                crop = cv2.resize(crop, (160, 160))
 
                 # Create crop image
                 skvideo.io.vwrite(get_video_location(args.video_dir) + '/' + label + '-' + str(face_index) + '.png', crop)
