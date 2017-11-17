@@ -19,6 +19,7 @@ import pickle
 from sklearn.svm import SVC
 from sklearn.externals import joblib
 
+
 print('Creating networks and loading parameters')
 with tf.Graph().as_default():
     # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.6)?
@@ -27,16 +28,11 @@ with tf.Graph().as_default():
         pnet, rnet, onet = detect_face.create_mtcnn(sess, '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/')
 
         minsize = 20  # minimum size of face
-        threshold = [0.6, 0.7, 0.7]  # three steps's threshold
+        threshold = [0.5, 0.6, 0.7]  # three steps's threshold
         factor = 0.709  # scale factor
-        margin = 44
         frame_interval = 3
-        batch_size = 1000
-        # image_size = 182
         image_size = 160
         input_image_size = 160
-
-        # HumanNames = ['Human_a','Human_b','Human_c','...','Human_h']    #train human name
 
         print('Loading feature extraction model')
         modeldir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/20170512-110547.pb'
@@ -56,16 +52,12 @@ with tf.Graph().as_default():
         video_capture = cv2.VideoCapture(0)
         c = 0
 
-        # #video writer
-        # fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-        # out = cv2.VideoWriter('3F_0726.avi', fourcc, fps=30, frameSize=(640,480))
-
         print('Start Recognition!')
         prevTime = 0
         while True:
             ret, frame = video_capture.read()
 
-            frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)    #resize frame (optional)
+            frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)
 
             curTime = time.time()    # calc fps
             timeF = frame_interval
@@ -84,9 +76,9 @@ with tf.Graph().as_default():
                     det = bounding_boxes[:, 0:4]
                     img_size = np.asarray(frame.shape)[0:2]
 
-                    cropped = []
-                    scaled = []
-                    scaled_reshape = []
+                    # cropped = []
+                    # scaled = []
+                    # scaled_reshape = []
                     bb = np.zeros((nrof_faces,4), dtype=np.int32)
 
                     for i in range(nrof_faces):
@@ -102,14 +94,15 @@ with tf.Graph().as_default():
                             print('face is inner of range!')
                             continue
 
-                        cropped.append(frame[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :])
-                        cropped[0] = facenet.flip(cropped[0], False)
-                        scaled.append(misc.imresize(cropped[0], (image_size, image_size), interp='bilinear'))
-                        scaled[0] = cv2.resize(scaled[0], (input_image_size,input_image_size),
-                                               interpolation=cv2.INTER_CUBIC)
-                        scaled[0] = facenet.prewhiten(scaled[0])
-                        scaled_reshape.append(scaled[0].reshape(-1,input_image_size,input_image_size,3))
-                        feed_dict = {images_placeholder: scaled_reshape[0], phase_train_placeholder: False}
+                        cropped = frame[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :]
+                        cropped = facenet.flip(cropped, False)
+                        scaled = misc.imresize(cropped, (image_size, image_size), interp='bilinear')
+                        scaled = cv2.resize(scaled, (input_image_size,input_image_size),
+                                            interpolation=cv2.INTER_CUBIC)
+
+                        scaled = facenet.prewhiten(scaled)
+                        scaled_reshape = scaled.reshape(-1,input_image_size,input_image_size,3)
+                        feed_dict = {images_placeholder: scaled_reshape, phase_train_placeholder: False}
                         emb_array[0, :] = sess.run(embeddings, feed_dict=feed_dict)
 
                         predictions = model.predict_proba(emb_array)
@@ -143,7 +136,7 @@ with tf.Graph().as_default():
             text_fps_y = 20
             cv2.putText(frame, strs, (text_fps_x, text_fps_y),
                         cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 0), thickness=1, lineType=2)
-            # c+=1
+            
             cv2.imshow('Video', frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
