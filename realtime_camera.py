@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from scipy import misc
 import cv2
@@ -12,13 +8,10 @@ import facenet
 import detect_face
 import os
 from os.path import join as pjoin
-import sys
 import time
 import math
 import pickle
 from sklearn.svm import SVC
-from sklearn.externals import joblib
-
 
 print('Creating networks and loading parameters')
 with tf.Graph().as_default():
@@ -28,7 +21,7 @@ with tf.Graph().as_default():
         pnet, rnet, onet = detect_face.create_mtcnn(sess, '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/')
 
         minsize = 20  # minimum size of face
-        threshold = [0.5, 0.6, 0.7]  # three steps's threshold
+        threshold = [0.4, 0.5, 0.6]  # three steps's threshold
         factor = 0.709  # scale factor
         frame_interval = 3
         image_size = 160
@@ -75,10 +68,6 @@ with tf.Graph().as_default():
                 if nrof_faces > 0:
                     det = bounding_boxes[:, 0:4]
                     img_size = np.asarray(frame.shape)[0:2]
-
-                    # cropped = []
-                    # scaled = []
-                    # scaled_reshape = []
                     bb = np.zeros((nrof_faces,4), dtype=np.int32)
 
                     for i in range(nrof_faces):
