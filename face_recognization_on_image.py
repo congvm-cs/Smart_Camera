@@ -34,7 +34,7 @@ def main():
             print('Creating networks and loading parameters...')
             pnet, rnet, onet = detect_face.create_mtcnn(sess, mtcnn_model_dir)
             minsize = 20  # minimum size of face
-            threshold = [0.5, 0.6, 0.7]  # three steps's threshold
+            threshold = [0.4, 0.5, 0.6]  # three steps's threshold
             factor = 0.709  # scale factor
             frame_interval = 3
             image_size = 160
@@ -140,20 +140,18 @@ def main():
                             if class_names[best_class_indices[0]] == H_i:
                                 result_names = class_names[best_class_indices[0]]
                                 cv2.putText(frame, result_names, (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                            1, (0, 0, 255), thickness=1, lineType=2)
+                                            1, (0, 255, 255), thickness=1, lineType=2)
                                 cv2.putText(frame, str_proba, (text_x, text_y + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                            1, (0, 0, 255), thickness=1, lineType=2)
+                                            1, (0, 255, 255), thickness=1, lineType=2)
 
-                                skvideo.io.vwrite("./datasets/Faces/" + result_names + "_" + str(random.randint(0, 999999)) + '.png', saved_face)
-
-                
+                                # skvideo.io.vwrite("./datasets/Faces/" + result_names + "_" + str(random.randint(0, 999999)) + '.png', saved_face)
                 cv2.imshow('Image', frame)
                 cv2.waitKey(0)       
 
             else:
                 print('Unable to align')
 
-if __name__ == '__main__':
+if __name__ == '__main__':  
     parser = argparse.ArgumentParser()
     parser.add_argument('--image-name', type=str, action='store', dest='image_name',
                     help='image directory')
