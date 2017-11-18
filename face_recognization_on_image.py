@@ -13,6 +13,7 @@ import math
 import pickle
 from sklearn.svm import SVC
 import skvideo.io
+import random
 
 def main():
     #=======================================================================================#
@@ -65,12 +66,12 @@ def main():
 
             #================================================================================#
             print('Start Recognition!')
-            image = cv2.imread(args.image_name, 1)
+            frame = cv2.imread(args.image_name, 1)
             
-            RGB_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            RGB_img = cv2.resize(RGB_img, (0,0), fx=0.5, fy=0.5)
+            RGB_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # RGB_img = cv2.resize(RGB_img, (0,0), fx=0.5, fy=0.5)
 
-            frame = cv2.resize(image, (0,0), fx=0.5, fy=0.5)
+            # frame = cv2.resize(image, (0,0), fx=0.5, fy=0.5)
 
             if frame.ndim == 2:
                 frame = facenet.to_rgb(frame)
@@ -119,11 +120,12 @@ def main():
 
                     # Save image
                     saved_face = cv2.resize(RGB_img[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :], (image_size, image_size))
-                    skvideo.io.vwrite("./datasets/Faces/mat_" + str(i) + '.png', saved_face)
-
+                   
                     if pred == -1:
                         cv2.putText(frame, "Unknown", (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
                                         1, (0, 0, 255), thickness=1, lineType=2)
+                        
+                        skvideo.io.vwrite("./datasets/Faces/unknown_" + str(random.randint(0, 999999)) + '.png', saved_face)
 
                     else:
                         predictions = classification_model.predict_proba(emb_array)
@@ -141,6 +143,8 @@ def main():
                                             1, (0, 0, 255), thickness=1, lineType=2)
                                 cv2.putText(frame, str_proba, (text_x, text_y + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL,
                                             1, (0, 0, 255), thickness=1, lineType=2)
+
+                                skvideo.io.vwrite("./datasets/Faces/" + result_names + "_" + str(random.randint(0, 999999)) + '.png', saved_face)
 
                 
                 cv2.imshow('Image', frame)
