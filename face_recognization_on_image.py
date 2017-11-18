@@ -15,6 +15,42 @@ from sklearn.svm import SVC
 import skvideo.io
 import random
 
+def draw_rectangle(img, p1, p2, p3, p4, str_name, str_accuracy, color):
+    offset = int((p3 - p1)/4)
+    thickness_heavy_line = 3
+    thickness_slim_line = 1
+    text_x = p1
+    text_y = p4 + 20
+    # Left Top (p1, p2)
+    cv2.line(img, (p1, p2), (p1, p2 + offset), color, thickness_heavy_line)
+    cv2.line(img, (p1, p2), (p1 + offset, p2 ), color, thickness_heavy_line)
+    
+    # Left Bottom (p1, p4)
+    cv2.line(img, (p1, p4), (p1, p4 - offset), color, thickness_heavy_line)
+    cv2.line(img, (p1, p4), (p1 + offset, p4 ), color, thickness_heavy_line)
+
+    # Right Top (p3, p2)
+    cv2.line(img, (p3, p2), (p3, p2 + offset), color, thickness_heavy_line)
+    cv2.line(img, (p3, p2), (p3 - offset, p2), color, thickness_heavy_line)
+
+    # Right Bottom (p3, p4)
+    cv2.line(img, (p3, p4), (p3, p4 - offset), color, thickness_heavy_line)
+    cv2.line(img, (p3, p4), (p3 - offset, p4 ), color, thickness_heavy_line)
+    
+    cv2.line(img, (p1, p2), (p1, p4), color, thickness_slim_line)
+    cv2.line(img, (p1, p2), (p3, p2), color, thickness_slim_line)
+    cv2.line(img, (p3, p4), (p1, p4), color, thickness_slim_line)
+    cv2.line(img, (p3, p4), (p3, p2), color, thickness_slim_line)
+
+    cv2.putText(img, str_name, (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                1, color, thickness=1, lineType=2)
+    
+    if not str_name == 'Unknown':
+        cv2.putText(img, str_accuracy, (text_x, text_y + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                    1, color, thickness=1, lineType=2)
+    return img
+
+
 def main():
     #=======================================================================================#
     print('Loading load from disk...')
@@ -67,11 +103,7 @@ def main():
             #================================================================================#
             print('Start Recognition!')
             frame = cv2.imread(args.image_name, 1)
-            
             RGB_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            # RGB_img = cv2.resize(RGB_img, (0,0), fx=0.5, fy=0.5)
-
-            # frame = cv2.resize(image, (0,0), fx=0.5, fy=0.5)
 
             if frame.ndim == 2:
                 frame = facenet.to_rgb(frame)
@@ -112,37 +144,34 @@ def main():
                     emb_array[0, :] = sess.run(embeddings, feed_dict=feed_dict)
 
                     #=============================================================================================#
-                    cv2.rectangle(frame, (bb[i][0], bb[i][1]), (bb[i][2], bb[i][3]), (0, 255, 0), 2)    #boxing face
                     pred = outlier_detector_model.predict(emb_array)
 
-                    text_x = bb[i][0]
-                    text_y = bb[i][3] + 20
+                    
 
                     # Save image
-                    saved_face = cv2.resize(RGB_img[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :], (image_size, image_size))
+                    # saved_face = cv2.resize(RGB_img[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :], (image_size, image_size))
                    
                     if pred == -1:
-                        cv2.putText(frame, "Unknown", (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                        1, (0, 0, 255), thickness=1, lineType=2)
-                        
-                        skvideo.io.vwrite("./datasets/Faces/unknown_" + str(random.randint(0, 999999)) + '.png', saved_face)
-
+                        text = 'Unknown'
+                        # cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                        #                 1, (0, 0, 255), thickness=1, lineType=2)
+                        frame = draw_rectangle(frame, bb[i][0], bb[i][1], bb[i][2], bb[i][3], text, None, (0, 0, 255))
                     else:
                         predictions = classification_model.predict_proba(emb_array)
                         best_class_indices = np.argmax(predictions, axis=1)
                         best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
 
-                        #plot result idx under box
+                        # plot result idx under box
                         proba = float(np.max(predictions))
                         str_proba = str("%.2f" % proba)
                         
                         for H_i in class_names:
                             if class_names[best_class_indices[0]] == H_i:
                                 result_names = class_names[best_class_indices[0]]
-                                cv2.putText(frame, result_names, (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                            1, (0, 255, 255), thickness=1, lineType=2)
-                                cv2.putText(frame, str_proba, (text_x, text_y + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                            1, (0, 255, 255), thickness=1, lineType=2)
+
+                                frame = draw_rectangle(frame, bb[i][0], bb[i][1], bb[i][2], bb[i][3], result_names, str_proba, (0, 255, 0))
+
+                                
 
                                 # skvideo.io.vwrite("./datasets/Faces/" + result_names + "_" + str(random.randint(0, 999999)) + '.png', saved_face)
                 cv2.imshow('Image', frame)
