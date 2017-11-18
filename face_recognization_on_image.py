@@ -145,17 +145,9 @@ def main():
 
                     #=============================================================================================#
                     pred = outlier_detector_model.predict(emb_array)
-
-                    
-
-                    # Save image
-                    # saved_face = cv2.resize(RGB_img[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :], (image_size, image_size))
                    
                     if pred == -1:
-                        text = 'Unknown'
-                        # cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                        #                 1, (0, 0, 255), thickness=1, lineType=2)
-                        frame = draw_rectangle(frame, bb[i][0], bb[i][1], bb[i][2], bb[i][3], text, None, (0, 0, 255))
+                        frame = draw_rectangle(frame, bb[i][0], bb[i][1], bb[i][2], bb[i][3], 'Unknown', None, (0, 0, 255))
                     else:
                         predictions = classification_model.predict_proba(emb_array)
                         best_class_indices = np.argmax(predictions, axis=1)
