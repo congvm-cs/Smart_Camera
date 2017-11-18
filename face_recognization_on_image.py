@@ -19,7 +19,7 @@ def main():
     print('Loading load from disk...')
     facenet_model_dir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/20170512-110547.pb'
     mtcnn_model_dir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/'
-    classification_model_dir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/model.pkl'
+    classification_model_dir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/classification_model.pkl'
     outlier_detector_model_dir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/outlier_model.pkl'
     
     #=======================================================================================#

@@ -14,7 +14,7 @@ import pickle
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
 
-reload_data = True
+reload_data = False
 if reload_data:
     print('Mode: reload data.')
 else:
@@ -81,7 +81,7 @@ def main():
             X_train, X_test, y_train, y_test = train_test_split(emb_array, labels, random_state = 10, test_size=0.3)
             
             print('Training classifier')
-            model = SVC(kernel='linear', probability=True, C=0.5, gamma='auto')
+            model = SVC(kernel='linear', probability=True, C=1.5, gamma='auto')
             model.fit(X_train, y_train)
 
             # # Create a list of class names
