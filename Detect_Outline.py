@@ -1,9 +1,5 @@
 """ Written by VMC
-    This tool written for train your own dataset
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import argparse
@@ -13,12 +9,10 @@ import math
 import pickle
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
-
-reload_data = True
-if reload_data:
-    print('Mode: reload data.')
-else:
-    print('Mode: use saved data.')
+from sklearn.svm import OneClassSVM
+# from sklearn.neighbors import LocalOutlierFactor
+from sklearn.ensemble import IsolationForest
+reload_data = False
 
 def write_embedding_data(X, y, file_name):
     with open(file_name, 'w+') as file:
@@ -34,9 +28,9 @@ def main():
             dataset = facenet.get_dataset(args.data_dir)        
             paths, labels = facenet.get_image_paths_and_labels(dataset)
 
+            print('Labels: ',labels)
             print('Number of classes: %d' % len(dataset))
             print('Number of images: %d' % len(paths))
-            print('Number of labels: %d' % len(labels))
 
             # Load the model
             print('Loading feature extraction model')
@@ -51,7 +45,7 @@ def main():
             
             # Run forward pass to calculate embeddings
             batch_size = 40
-            image_size = 160
+            # image_size = 160
 
             print('Calculating features for images')
             nrof_images = len(paths)
@@ -63,10 +57,10 @@ def main():
                     start_index = i*batch_size
                     end_index = min((i+1)*batch_size, nrof_images)
                     paths_batch = paths[start_index:end_index]
-                    images = facenet.load_data(paths_batch, False, False, image_size)     
+                    images = facenet.load_data(paths_batch, False, False, args.image_size)     
                     feed_dict = { images_placeholder:images, phase_train_placeholder:False }
                     emb_array[start_index:end_index,:] = sess.run(embeddings, feed_dict=feed_dict)
-                    print("Epoch #{}. Embedded: {}/{}".format(i, end_index, nrof_images))
+                    print("Epoch #{}. Processed: {}/{}".format(i, end_index, nrof_images))
             
                 # save data on disk
                 with open("emb_array.pkl", 'wb') as pickle_file:
@@ -78,36 +72,24 @@ def main():
 
             # Train classifier
             from sklearn.model_selection import train_test_split
-            X_train, X_test, y_train, y_test = train_test_split(emb_array, labels, random_state = 10, test_size=0.3)
+            X_train, X_test, y_train, y_test = train_test_split(emb_array, labels, random_state=10, test_size=0.3)
             
             print('Training classifier')
-            model = SVC(kernel='linear', probability=True, C=0.5, gamma='auto')
-            model.fit(X_train, y_train)
+            model = IsolationForest(max_samples=nrof_images,
+                                contamination=0.1,
+                                random_state=10, verbose=1)
 
-            # # Create a list of class names
-            class_names = [ cls.name.replace('_', ' ') for cls in dataset]
-            classifier_filename_exp = os.path.expanduser(args.classifier_filename)
+            # model = OneClassSVM(nu=0.95 * 0.1 + 0.05,
+            #                          kernel="rbf", gamma=0.1)
+            # # # Create a list of class names
+            # class_names = [ cls.name.replace('_', ' ') for cls in dataset]
+                 
+            model.fit(emb_array)
             
-            y_train_pred = model.predict(X_train)
-            y_test_pred = model.predict(X_test)
-
-            from sklearn.metrics import accuracy_score
-            test_score = accuracy_score(y_test, y_test_pred)
-            train_score = accuracy_score(y_train, y_train_pred)
-
-            print("Train accuracy: {}".format(train_score))
-            print("Test accuracy: {}".format(test_score))
-
-            # Write into file
-            y = []
-            for i in labels:  
-                y.append(class_names[i])
-
-            # write_embedding_data(emb_array, y, 'embedding_Data')
-
             # Saving classifier model
+            classifier_filename_exp = os.path.expanduser(args.classifier_filename)
             with open(classifier_filename_exp, 'wb') as outfile:
-                pickle.dump((model, class_names), outfile)
+                pickle.dump(model, outfile)
             print('Saved classifier model to file "%s"' % classifier_filename_exp)
 
 

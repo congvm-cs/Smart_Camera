@@ -13,61 +13,43 @@ import math
 import pickle
 from sklearn.svm import SVC
 
-#=======================================================================================#
-print('Loading load from disk...')
-facenet_model_dir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/20170512-110547.pb'
-mtcnn_model_dir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/'
-classification_model_dir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/model.pkl'
-outlier_detector_model_dir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/outlier_model.pkl'
- 
-#=======================================================================================#
-
+print('Creating networks and loading parameters')
 with tf.Graph().as_default():
     # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.6)?
     sess = tf.Session()
     with sess.as_default():
-        
-        #================================================================================#
-        print('Creating networks and loading parameters...')
-        pnet, rnet, onet = detect_face.create_mtcnn(sess, mtcnn_model_dir)
+        pnet, rnet, onet = detect_face.create_mtcnn(sess, '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/')
+
         minsize = 20  # minimum size of face
-        threshold = [0.5, 0.6, 0.7]  # three steps's threshold
+        threshold = [0.5, 0.6, 0.6]  # three steps's threshold
         factor = 0.709  # scale factor
         frame_interval = 3
         image_size = 160
         input_image_size = 160
 
-        #================================================================================#
         print('Loading feature extraction model')
-        facenet.load_model(facenet_model_dir)
+        modeldir = '/media/vmc/Data/VMC/Workspace/Smart-Camera/model_check_point/20170512-110547.pb'
+        facenet.load_model(modeldir)
+
         images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
         embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         embedding_size = embeddings.get_shape()[1]
-        print('Done.')
-        
-        
-        #================================================================================#
-        print('Loading classification model...')
-        classifier_filename_exp = os.path.expanduser(classification_model_dir)
+
+        classifier_filename = '/media/vmc/Data/VMC/Workspace/Smart-Camera/outlier_model.pkl'
+        classifier_filename_exp = os.path.expanduser(classifier_filename)
         with open(classifier_filename_exp, 'rb') as infile:
-            (classification_model, class_names) = pickle.load(infile)
+            model = pickle.load(infile)
             print('load classifier file-> %s' % classifier_filename_exp)
 
-        print('Loading outlier detector model')
-        classifier_filename_exp = os.path.expanduser(outlier_detector_model_dir)
-        with open(classifier_filename_exp, 'rb') as infile:
-            outlier_detector_model = pickle.load(infile)
-            print('load classifier file-> %s' % classifier_filename_exp)
-
-
-        #================================================================================#
-        print('Start Recognition!')
-        video_capture = cv2.VideoCapture(1)
+        video_capture = cv2.VideoCapture(0)
         c = 0
+
+        print('Start Recognition!')
         prevTime = 0
         while True:
             ret, frame = video_capture.read()
+
             frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)
 
             curTime = time.time()    # calc fps
@@ -78,7 +60,6 @@ with tf.Graph().as_default():
 
                 if frame.ndim == 2:
                     frame = facenet.to_rgb(frame)
-
                 frame = frame[:, :, 0:3]
                 bounding_boxes, _ = detect_face.detect_face(frame, minsize, pnet, rnet, onet, threshold, factor)
                 nrof_faces = bounding_boxes.shape[0]
@@ -113,32 +94,19 @@ with tf.Graph().as_default():
                         feed_dict = {images_placeholder: scaled_reshape, phase_train_placeholder: False}
                         emb_array[0, :] = sess.run(embeddings, feed_dict=feed_dict)
 
-                        #=============================================================================================#
+                        # Prediction
+                        predictions = model.predict(emb_array)
+
+                        #plot result idx under box
                         cv2.rectangle(frame, (bb[i][0], bb[i][1]), (bb[i][2], bb[i][3]), (0, 255, 0), 2)    #boxing face
-                        pred = outlier_detector_model.predict(emb_array)
                         text_x = bb[i][0]
                         text_y = bb[i][3] + 20
-
-                        if pred == -1:
+                        if (predictions == -1):
                             cv2.putText(frame, "Unknown", (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
                                             1, (0, 0, 255), thickness=1, lineType=2)
                         else:
-                            predictions = classification_model.predict_proba(emb_array)
-                            best_class_indices = np.argmax(predictions, axis=1)
-                            best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
-
-                            #plot result idx under box
-                            proba = float(np.max(predictions))
-                            str_proba = str("%.2f" % proba)
-                            
-                            for H_i in class_names:
-                                if class_names[best_class_indices[0]] == H_i:
-                                    result_names = class_names[best_class_indices[0]]
-                                    cv2.putText(frame, result_names, (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                                1, (0, 0, 255), thickness=1, lineType=2)
-                                    cv2.putText(frame, str_proba, (text_x, text_y + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                                1, (0, 0, 255), thickness=1, lineType=2)
-
+                            cv2.putText(frame, "Known", (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                                            1, (0, 0, 255), thickness=1, lineType=2)
                 else:
                     print('Unable to align')
 
@@ -149,8 +117,10 @@ with tf.Graph().as_default():
             text_fps_x = len(frame[0]) - 150
             text_fps_y = 20
             cv2.putText(frame, strs, (text_fps_x, text_fps_y),
-                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 0, 255), thickness=1, lineType=2)
+                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 0), thickness=1, lineType=2)
+            
             cv2.imshow('Video', frame)
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
