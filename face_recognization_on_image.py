@@ -70,7 +70,7 @@ def main():
             print('Creating networks and loading parameters...')
             pnet, rnet, onet = detect_face.create_mtcnn(sess, mtcnn_model_dir)
             minsize = 20  # minimum size of face
-            threshold = [0.4, 0.5, 0.6]  # three steps's threshold
+            threshold = [0.5, 0.6, 0.7]  # three steps's threshold
             factor = 0.709  # scale factor
             frame_interval = 3
             image_size = 160
