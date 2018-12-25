@@ -25,12 +25,12 @@ def write_embedding_data(X, y, file_name):
 def main():    
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            dataset = facenet.get_dataset(args.data_dir)        
-            paths, labels = facenet.get_image_paths_and_labels(dataset)
+            # dataset = facenet.get_dataset(args.data_dir)        
+            # paths, labels = facenet.get_image_paths_and_labels(dataset)
 
-            print('Labels: ',labels)
-            print('Number of classes: %d' % len(dataset))
-            print('Number of images: %d' % len(paths))
+            # print('Labels: ',labels)
+            # print('Number of classes: %d' % len(dataset))
+            # print('Number of images: %d' % len(paths))
 
             # Load the model
             print('Loading feature extraction model')
@@ -47,10 +47,10 @@ def main():
             batch_size = 40
             # image_size = 160
 
-            print('Calculating features for images')
-            nrof_images = len(paths)
-            nrof_batches_per_epoch = int(math.ceil(1.0*nrof_images / batch_size))          
-            emb_array = np.zeros((nrof_images, embedding_size))
+            # print('Calculating features for images')
+            # nrof_images = len(paths)
+            # nrof_batches_per_epoch = int(math.ceil(1.0*nrof_images / batch_size))          
+            # emb_array = np.zeros((nrof_images, embedding_size))
             
             if reload_data:
                 for i in range(nrof_batches_per_epoch):
@@ -67,7 +67,7 @@ def main():
                     pickle.dump(emb_array, pickle_file)
             else:
                 # load data from disk
-                with open("emb_array.pkl", 'rb') as pickle_file:
+                with open("./model_check_point/emb_array.pkl", 'rb') as pickle_file:
                     emb_array = pickle.load(pickle_file)
 
             # Train classifier
